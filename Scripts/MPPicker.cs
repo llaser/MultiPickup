@@ -1,0 +1,122 @@
+﻿
+using UdonSharp;
+using UnityEngine;
+using VRC.SDKBase;
+
+namespace llaser.MultiPickup
+{
+    public class MPPicker : UdonSharpBehaviour
+    {
+        // 制限: parentを弄る都合上、これをアタッチするgameobjectのscaleの各要素は同じ値でないと、childを回転したときに歪む
+        // 最初にMPPickerのchildであった場合、多分変な挙動になる
+        // このgameObjectのcolliderはisTrigger=trueにするか、MPPickupとの衝突をしないように設定することを推奨
+        // (保持している非kinematicなオブジェクトを取られた際にVRCObjectSyncのallow collision ownership transferが有効だとこのオブジェクトのownerも取られてしまうため)
+        [SerializeField] private bool _releaseMPPickupOnDrop;
+        [SerializeField] private BoxCollider _MPPickerBoxCollider;
+        [SerializeField] private SphereCollider _MPPickerSphereCollider;
+        [SerializeField] private LayerMask _MPPickupLayer = -1; // everything
+        private MPPicker _MPPicker;
+
+        private void Start()
+        {
+            _MPPicker = GetComponent<MPPicker>();
+            if (!_MPPickerBoxCollider && !_MPPickerSphereCollider) Debug.LogWarning($"[MultiPickup] _MPPickerCollider is invalid");
+        }
+        public override void OnDrop()
+        {
+            if (_releaseMPPickupOnDrop)
+            {
+                ReleaseAllMPPickups();
+            }
+        }
+        public override bool OnOwnershipRequest(VRCPlayerApi requestingPlayer, VRCPlayerApi requestedOwner)
+        {
+            if (Utilities.IsValid(requestedOwner) && !requestedOwner.isLocal) ReleaseAllMPPickups(); // when localplayer looses ownership 
+            return true;
+        }
+        public void ReleaseAllMPPickups()
+        {
+            MPPickup[] pickups = GetComponentsInChildren<MPPickup>(true);
+            if (pickups != null)
+            {
+                foreach (MPPickup p in pickups)
+                {
+                    if (p && p != _MPPicker)
+                    {
+                        p.RevertParent();
+                        p.RevertRigidbodyParam();
+                    }
+                }
+            }
+        }
+        public int AttachOverlappingMPPickups()
+        {
+            Collider[] cols = GetOverlappingColliders();
+            if (cols == null || cols.Length == 0) return 0;
+            MPPickup[] mPPickups = GetComponentsFromColliders<MPPickup>(cols);
+            if (mPPickups == null) return 0;
+
+            int ret = 0;
+            Transform thisTransform = transform;
+            foreach (MPPickup p in mPPickups)
+            {
+                if (p)
+                {
+                    Transform puTransform = p.transform;
+                    if (puTransform.parent != thisTransform && puTransform != thisTransform)
+                    {
+                        p.AttachToMPPicker(this);
+                        ret++;
+                    }
+                }
+            }
+            return ret;
+        }
+        public Collider[] GetOverlappingColliders()
+        {
+            Collider[] cols = null;
+            if (_MPPickerBoxCollider)
+            {
+                Transform colliderTransform = _MPPickerBoxCollider.transform;
+                Vector3 colliderCenter = colliderTransform.TransformPoint(_MPPickerBoxCollider.center);
+                Vector3 halfExtents = Vector3.Scale(_MPPickerBoxCollider.size, colliderTransform.lossyScale) / 2;
+                cols = Physics.OverlapBox(colliderCenter, halfExtents, colliderTransform.rotation, _MPPickupLayer.value);
+            }
+            else if (_MPPickerSphereCollider)
+            {
+                Transform colliderTransform = _MPPickerSphereCollider.transform;
+                Vector3 colliderCenter = colliderTransform.TransformPoint(_MPPickerSphereCollider.center);
+                cols = Physics.OverlapSphere(colliderCenter, _MPPickerSphereCollider.bounds.size.x / 2, _MPPickupLayer.value);    // spherecolliderのboundsの各要素はradius*transform.lossyscaleの要素の最大値
+            }
+            return cols;
+        }
+        public static T[] GetComponentsFromColliders<T>(Collider[] colliders) where T : Component
+        {
+            if (colliders == null) { return new T[0]; }
+            T[] tempRet = new T[colliders.Length];
+            int i = 0;
+            foreach (Collider c in colliders)
+            {
+                if (c)
+                {
+                    T comp = c.GetComponent<T>();
+                    if (comp)
+                    {
+                        tempRet[i] = comp;
+                        i++;
+                    }
+                }
+            }
+            if (i != tempRet.Length)
+            {
+                T[] ret = new T[i];
+                System.Array.Copy(tempRet, ret, i);
+                return ret;
+            }
+            else
+            {
+                return tempRet;
+            }
+        }
+    }
+}
