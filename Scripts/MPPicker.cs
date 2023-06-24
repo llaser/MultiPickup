@@ -31,7 +31,7 @@ namespace llaser.MultiPickup
         }
         public override bool OnOwnershipRequest(VRCPlayerApi requestingPlayer, VRCPlayerApi requestedOwner)
         {
-            if (Utilities.IsValid(requestedOwner) && !requestedOwner.isLocal) ReleaseAllMPPickups(); // when localplayer looses ownership 
+            if (Utilities.IsValid(requestedOwner) && !requestedOwner.isLocal) ReleaseAllMPPickups(); // when localplayer loses ownership 
             return true;
         }
         public void ReleaseAllMPPickups()
@@ -91,7 +91,7 @@ namespace llaser.MultiPickup
             {
                 Transform colliderTransform = _MPPickerSphereCollider.transform;
                 Vector3 colliderCenter = colliderTransform.TransformPoint(_MPPickerSphereCollider.center);
-                cols = Physics.OverlapSphere(colliderCenter, _MPPickerSphereCollider.bounds.size.x / 2, _MPPickupLayer.value);    // spherecolliderのboundsの各要素はradius*transform.lossyscaleの要素の最大値
+                cols = Physics.OverlapSphere(colliderCenter, _MPPickerSphereCollider.bounds.size.x / 2, _MPPickupLayer.value);    // spherecolliderのboundsの各要素は2*radius*transform.lossyscaleの要素の最大値
             }
             return cols;
         }
