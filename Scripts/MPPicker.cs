@@ -51,21 +51,26 @@ namespace llaser.MultiPickup
         }
         public int AttachOverlappingMPPickups()
         {
-            Collider[] cols = GetOverlappingColliders();
+            return AttachOverlappingMPPickups<MPPickup>(this);
+        }
+        public static int AttachOverlappingMPPickups<T>(MPPicker target) where T : MPPickup
+        {
+            if (!target) return 0;
+            Collider[] cols = target.GetOverlappingColliders();
             if (cols == null || cols.Length == 0) return 0;
-            MPPickup[] mPPickups = GetComponentsFromColliders<MPPickup>(cols);
+            T[] mPPickups = GetComponentsFromColliders<T>(cols);
             if (mPPickups == null) return 0;
 
             int ret = 0;
-            Transform thisTransform = transform;
-            foreach (MPPickup p in mPPickups)
+            Transform thisTransform = target.transform;
+            foreach (T p in mPPickups)
             {
                 if (p)
                 {
                     Transform puTransform = p.transform;
                     if (puTransform.parent != thisTransform && puTransform != thisTransform)
                     {
-                        p.AttachToMPPicker(this);
+                        p.AttachToMPPicker(target);
                         ret++;
                     }
                 }
