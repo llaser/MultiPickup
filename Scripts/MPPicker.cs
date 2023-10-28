@@ -11,17 +11,29 @@ namespace llaser.MultiPickup
         // 最初にMPPickerのchildであった場合、多分変な挙動になる
         // このgameObjectのcolliderはisTrigger=trueにするか、MPPickupとの衝突をしないように設定することを推奨
         // (保持している非kinematicなオブジェクトを取られた際にVRCObjectSyncのallow collision ownership transferが有効だとこのオブジェクトのownerも取られてしまうため)
-        [SerializeField] private bool _releaseMPPickupOnDrop;
-        [SerializeField] private BoxCollider _MPPickerBoxCollider;
-        [SerializeField] private SphereCollider _MPPickerSphereCollider;
-        [SerializeField] private LayerMask _MPPickupLayer = -1; // everything
+        [SerializeField]
+        private bool _releaseMPPickupOnDrop;
+
+        [SerializeField]
+        private BoxCollider _MPPickerBoxCollider;
+
+        [SerializeField]
+        private SphereCollider _MPPickerSphereCollider;
+
+        [SerializeField]
+        private LayerMask _MPPickupLayer = -1; // everything
+
         private MPPicker _MPPicker;
 
         private void Start()
         {
             _MPPicker = GetComponent<MPPicker>();
-            if (!_MPPickerBoxCollider && !_MPPickerSphereCollider) Debug.LogWarning($"[MultiPickup] _MPPickerCollider is invalid");
+            if (!_MPPickerBoxCollider && !_MPPickerSphereCollider)
+            {
+                Debug.LogWarning($"[MultiPickup] _MPPickerCollider is invalid");
+            }
         }
+
         public override void OnDrop()
         {
             if (_releaseMPPickupOnDrop)
@@ -29,11 +41,17 @@ namespace llaser.MultiPickup
                 ReleaseAllMPPickups();
             }
         }
+
         public override bool OnOwnershipRequest(VRCPlayerApi requestingPlayer, VRCPlayerApi requestedOwner)
         {
-            if (Utilities.IsValid(requestedOwner) && !requestedOwner.isLocal) ReleaseAllMPPickups(); // when localplayer loses ownership 
+            if (Utilities.IsValid(requestedOwner) && !requestedOwner.isLocal)
+            {
+                // when localplayer loses ownership
+                ReleaseAllMPPickups();
+            }
             return true;
         }
+
         public void ReleaseAllMPPickups()
         {
             MPPickup[] pickups = GetComponentsInChildren<MPPickup>(true);
@@ -49,34 +67,32 @@ namespace llaser.MultiPickup
                 }
             }
         }
-        public int AttachOverlappingMPPickups()
-        {
-            return AttachOverlappingMPPickups<MPPickup>(this);
-        }
+
+        public int AttachOverlappingMPPickups() => AttachOverlappingMPPickups<MPPickup>(this);
+
         public static int AttachOverlappingMPPickups<T>(MPPicker target) where T : MPPickup
         {
-            if (!target) return 0;
+            if (!target) { return 0; }
             Collider[] cols = target.GetOverlappingColliders();
-            if (cols == null || cols.Length == 0) return 0;
+            if (cols == null || cols.Length == 0) { return 0; }
             T[] mPPickups = GetComponentsFromColliders<T>(cols);
-            if (mPPickups == null) return 0;
+            if (mPPickups == null) { return 0; }
 
             int ret = 0;
             Transform thisTransform = target.transform;
             foreach (T p in mPPickups)
             {
-                if (p)
+                if (!p) { continue; }
+                Transform puTransform = p.transform;
+                if (puTransform.parent != thisTransform && puTransform != thisTransform)
                 {
-                    Transform puTransform = p.transform;
-                    if (puTransform.parent != thisTransform && puTransform != thisTransform)
-                    {
-                        p.AttachToMPPicker(target);
-                        ret++;
-                    }
+                    p.AttachToMPPicker(target);
+                    ret++;
                 }
             }
             return ret;
         }
+
         public Collider[] GetOverlappingColliders()
         {
             Collider[] cols = null;
@@ -91,10 +107,12 @@ namespace llaser.MultiPickup
             {
                 Transform colliderTransform = _MPPickerSphereCollider.transform;
                 Vector3 colliderCenter = colliderTransform.TransformPoint(_MPPickerSphereCollider.center);
-                cols = Physics.OverlapSphere(colliderCenter, _MPPickerSphereCollider.bounds.size.x / 2, _MPPickupLayer.value);    // spherecolliderのboundsの各要素は2*radius*transform.lossyscaleの要素の最大値
+                // spherecolliderのboundsの各要素は2*radius*transform.lossyscaleの要素の最大値
+                cols = Physics.OverlapSphere(colliderCenter, _MPPickerSphereCollider.bounds.size.x / 2, _MPPickupLayer.value);
             }
             return cols;
         }
+
         public static T[] GetComponentsFromColliders<T>(Collider[] colliders) where T : Component
         {
             if (colliders == null) { return new T[0]; }
