@@ -9,6 +9,7 @@ namespace llaser.MultiPickup
     /// <summary>
     /// Object to be picked up by MPPicker
     /// </summary>
+    [UdonBehaviourSyncMode(BehaviourSyncMode.NoVariableSync)]
     public class MPPickup : UdonSharpBehaviour
     {
         // transform.positionなどの変更はTeleportToの使用を推奨
@@ -26,7 +27,7 @@ namespace llaser.MultiPickup
 
         private void Start()
         {
-            if (!_initialized) Initialize();
+            if (!_initialized) { Initialize(); }
         }
 
         private void Initialize()
