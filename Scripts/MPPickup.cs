@@ -9,10 +9,10 @@ namespace llaser.MultiPickup
     /// <summary>
     /// Object to be picked up by MPPicker
     /// </summary>
-    [UdonBehaviourSyncMode(BehaviourSyncMode.NoVariableSync)]
     public class MPPickup : UdonSharpBehaviour
     {
         // transform.positionなどの変更はTeleportToの使用を推奨
+        [Header("同期モードはNone以外にすること")]
         [SerializeField]
         private Transform _originalParent;
 
