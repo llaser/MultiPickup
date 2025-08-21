@@ -24,6 +24,7 @@ namespace llaser.MultiPickup
         private VRCPickup _pickup;
         private Rigidbody _rigidbody;
         private bool _isKinematicAtInit;
+        private Vector3 _originalLocalScale;
 
         private void Start()
         {
@@ -40,6 +41,7 @@ namespace llaser.MultiPickup
                 _isKinematicAtInit = _rigidbody.isKinematic;
             }
             if (!_originalParent) { _originalParent = transform.parent; }
+            _originalLocalScale = transform.localScale;
             _initialized = true;
         }
 
@@ -99,7 +101,13 @@ namespace llaser.MultiPickup
         public void RevertParent()
         {
             if (!_initialized) { Initialize(); }
-            transform.SetParent(_originalParent, true);
+            if (transform.parent != _originalParent)
+            {
+                transform.SetParent(_originalParent, true);
+                return;
+            }
+            // SetParentの繰り返しやscaleが均一でないParentで値が変わる場合があるため.
+            transform.localScale = _originalLocalScale;
         }
 
         public void RevertRigidbodyParam()
